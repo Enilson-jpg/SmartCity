@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cidade Inteligente — Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d2e;
+            --border: #2a2d3e;
+            --accent: #6c63ff;
+            --green: #00d4aa;
+            --yellow: #f5a623;
+            --red: #ff4757;
+            --text: #e2e8f0;
+            --muted: #8892a4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: .5px;
+        }
+
+        header h1 span {
+            color: var(--accent);
+        }
+
+        #status-gw {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .85rem;
+            color: var(--muted);
+        }
+
+        #status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--red);
+            transition: background .3s;
+        }
+
+        #status-dot.online {
+            background: var(--green);
+        }
+
+        /* ── Layout ── */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+            display: grid;
+            gap: 24px;
+        }
+
+        /* ── Métricas ── */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .metric-card .label {
+            font-size: .75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+        }
+
+        .metric-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .metric-card .sub {
+            font-size: .78rem;
+            color: var(--muted);
+        }
+
+        .metric-card.alert {
+            border-color: var(--red);
+        }
+
+        .metric-card.alert .value {
+            color: var(--red);
+        }
+
+        /* ── Painéis ── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header h2 {
+            font-size: .95rem;
+            font-weight: 600;
+        }
+
+        .panel-body {
+            padding: 20px;
+        }
+
+        /* ── Fontes ── */
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .source-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: border-color .2s, transform .1s;
+        }
+
+        .source-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .source-card.selected {
+            border-color: var(--accent);
+            background: #1e1b3a;
+        }
+
+        .source-card .sc-id {
+            font-size: .7rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+            font-family: monospace;
+        }
+
+        .source-card .sc-type {
+            font-size: .9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .source-card .sc-status {
+            display: inline-block;
+            font-size: .7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .sc-status.ativo,
+        .sc-status.ativado {
+            background: #00d4aa22;
+            color: var(--green);
+        }
+
+        .sc-status.inativo,
+        .sc-status.desativado {
+            background: #ff475722;
+            color: var(--red);
+        }
+
+        .sc-ctrl {
+            font-size: .7rem;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        /* ── Gráficos ── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 24px;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 240px;
+        }
+
+        /* ── Controle ── */
+        .control-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: .75rem;
+            color: var(--muted);
+        }
+
+        select,
+        input[type=text],
+        input[type=number] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 9px 12px;
+            font-size: .875rem;
+            outline: none;
+            width: 100%;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: .875rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity .2s;
+        }
+
+        button:hover {
+            opacity: .85;
+        }
+
+        button.danger {
+            background: var(--red);
+        }
+
+        button.success {
+            background: var(--green);
+            color: #000;
+        }
+
+        #cmd-result {
+            margin-top: 12px;
+            font-size: .85rem;
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #cmd-result.ok {
+            background: #00d4aa18;
+            color: var(--green);
+            border: 1px solid #00d4aa44;
+        }
+
+        #cmd-result.err {
+            background: #ff475718;
+            color: var(--red);
+            border: 1px solid #ff475744;
+        }
+
+        /* ── Alertas ── */
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            background: #ff475710;
+            border: 1px solid #ff475730;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: .82rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-item .ai-source {
+            font-weight: 600;
+            color: var(--red);
+        }
+
+        .alert-item .ai-ts {
+            color: var(--muted);
+            font-size: .75rem;
+        }
+
+        /* ── Analíticos ── */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .analytic-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .analytic-card .ac-label {
+            font-size: .72rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .analytic-card .ac-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .analytic-card .ac-sub {
+            font-size: .72rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* ── Scroll ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        @media (max-width: 700px) {
+            main {
+                padding: 16px;
+            }
+
+            .control-form {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>🏙️ Cidade <span>Inteligente</span> — Dashboard</h1>
+        <div id="status-gw">
+            <div id="status-dot"></div>
+            <span id="status-text">Conectando ao Gateway...</span>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- Métricas rápidas -->
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="label">Fontes Ativas</div>
+                <div class="value" id="m-fontes">—</div>
+                <div class="sub">dispositivos online</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Média Temperatura (1h)</div>
+                <div class="value" id="m-temp">—</div>
+                <div class="sub">graus Celsius</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Desvio CO₂ (24h)</div>
+                <div class="value" id="m-co2">—</div>
+                <div class="sub">ppm</div>
+            </div>
+            <div class="metric-card alert">
+                <div class="label">Alertas (24h)</div>
+                <div class="value" id="m-alertas">—</div>
+                <div class="sub">total de disparos</div>
+            </div>
+        </div>
+
+        <!-- Fontes conectadas -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📡 Fontes de Dados</h2>
+                <span style="font-size:.78rem;color:var(--muted)" id="fontes-ts">—</span>
+            </div>
+            <div class="panel-body">
+                <div class="sources-grid" id="sources-grid">
+                    <div style="color:var(--muted);font-size:.85rem">Carregando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📈 Séries Temporais</h2>
+                <select id="chart-source" style="width:auto;padding:6px 10px">
+                    <option value="">Todas as fontes</option>
+                </select>
+            </div>
+            <div class="panel-body">
+                <div class="charts-grid">
+                    <div class="panel" style="padding:16px">
+                        <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Temperatura (°C)</div>
+                        <div class="chart-wrap"><canvas id="chart-temp"></canvas></div>
+                    </div>
+                    <div class="panel" style="padding:16px">
+                        <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Qualidade do Ar — CO₂ (ppm)
+                        </div>
+                        <div class="chart-wrap"><canvas id="chart-co2"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controle -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>🎛️ Controle de Fontes</h2>
+            </div>
+            <div class="panel-body">
+                <div class="control-form">
+                    <div class="form-group">
+                        <label>Fonte</label>
+                        <select id="cmd-source">
+                            <option value="">Selecione uma fonte...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ação</label>
+                        <select id="cmd-acao">
+                            <option value="ativar">Ativar</option>
+                            <option value="desativar">Desativar</option>
+                            <option value="set_frequencia">Alterar frequência (s)</option>
+                            <option value="set_limiar">Alterar limiar de alerta</option>
+                            <option value="set_intensidade">Alterar intensidade (%)</option>
+                            <option value="modo_auto">Modo automático (1=sim, 0=não)</option>
+                            <option value="modo_emergencia">Modo emergência (1=sim, 0=não)</option>
+                            <option value="set_tempo_verde">Tempo verde semáforo (s)</option>
+                            <option value="set_tempo_vermelho">Tempo vermelho semáforo (s)</option>
+                            <option value="iniciar_gravacao">Iniciar gravação (câmera)</option>
+                            <option value="parar_gravacao">Parar gravação (câmera)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor (se aplicável)</label>
+                        <input type="number" id="cmd-valor" value="0" step="any">
+                    </div>
+                    <button onclick="enviarComando()">Enviar Comando</button>
+                </div>
+                <div id="cmd-result"></div>
+            </div>
+        </div>
+
+        <!-- Alertas recentes -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>⚠️ Alertas Recentes</h2>
+            </div>
+            <div class="panel-body">
+                <div class="alert-list" id="alert-list">
+                    <div style="color:var(--muted);font-size:.85rem">Nenhum alerta recente.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consultas analíticas -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>🔬 Consultas Analíticas</h2>
+                <button onclick="atualizarAnaliticos()" style="padding:6px 14px;font-size:.78rem">Atualizar</button>
+            </div>
+            <div class="panel-body">
+                <div class="analytics-grid">
+                    <div class="analytic-card">
+                        <div class="ac-label">Média Temperatura — 1h</div>
+                        <div class="ac-value" id="an-temp">—</div>
+                        <div class="ac-sub">°C</div>
+                    </div>
+                    <div class="analytic-card">
+                        <div class="ac-label">Desvio Padrão CO₂ — 24h</div>
+                        <div class="ac-value" id="an-co2">—</div>
+                        <div class="ac-sub">ppm</div>
+                    </div>
+                    <div class="analytic-card">
+                        <div class="ac-label">Fonte maior variação — 1h</div>
+                        <div class="ac-value" id="an-var-id" style="font-size:1rem">—</div>
+                        <div class="ac-sub" id="an-var-dp">desvio padrão: —</div>
+                    </div>
+                    <div class="analytic-card">
+                        <div class="ac-label">Mais alertas — 24h</div>
+                        <div class="ac-value" id="an-alert-id" style="font-size:1rem">—</div>
+                        <div class="ac-sub" id="an-alert-n">total: —</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ─── Configuração ─────────────────────────────────────────────────────────
+        const GW = "http://localhost:6003";
+
+        // ─── Chart.js ─────────────────────────────────────────────────────────────
+        Chart.defaults.color = "#8892a4";
+        Chart.defaults.borderColor = "#2a2d3e";
+
+        function criarGrafico(id, label, cor) {
+            const ctx = document.getElementById(id).getContext("2d");
+            return new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label,
+                        data: [],
+                        borderColor: cor,
+                        backgroundColor: cor + "18",
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        tension: 0.4,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { maxTicksLimit: 8, maxRotation: 0 } },
+                        y: { ticks: { maxTicksLimit: 5 } }
+                    }
+                }
+            });
+        }
+
+        const charts = {
+            temp: criarGrafico("chart-temp", "Temperatura (°C)", "#6c63ff"),
+            co2: criarGrafico("chart-co2", "CO₂ (ppm)", "#f5a623"),
+        };
+
+        function atualizarGrafico(chart, dados) {
+            chart.data.labels = dados.map(d => new Date(d.timestamp * 1000).toLocaleTimeString("pt-BR"));
+            chart.data.datasets[0].data = dados.map(d => d.valor);
+            chart.update("none");
+        }
+
+        // ─── Helpers HTTP ─────────────────────────────────────────────────────────
+        async function get(path) {
+            try {
+                const r = await fetch(GW + path);
+                return await r.json();
+            } catch { return null; }
+        }
+
+        async function post(path, body) {
+            try {
+                const r = await fetch(GW + path, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                return await r.json();
+            } catch { return null; }
+        }
+
+        // ─── Status do Gateway ────────────────────────────────────────────────────
+        async function checarGateway() {
+            const dados = await get("/fontes");
+            const dot = document.getElementById("status-dot");
+            const txt = document.getElementById("status-text");
+            if (dados !== null) {
+                dot.className = "online";
+                txt.textContent = "Gateway online";
+            } else {
+                dot.className = "";
+                txt.textContent = "Gateway offline";
+            }
+        }
+
+        // ─── Fontes de dados ──────────────────────────────────────────────────────
+        async function atualizarFontes() {
+            const fontes = await get("/fontes");
+            if (!fontes) return;
+
+            const grid = document.getElementById("sources-grid");
+            const sel1 = document.getElementById("chart-source");
+            const sel2 = document.getElementById("cmd-source");
+
+            // Métrica: conta fontes com status ativo/ativado
+            document.getElementById("m-fontes").textContent =
+                fontes.filter(f => f.status === "ativo" || f.status === "ativado").length;
+
+            // Preserva seleções do usuário
+            const selChartVal = sel1.value;
+            const selCmdVal = sel2.value;
+
+            grid.innerHTML = "";
+            sel1.innerHTML = '<option value="">Todas as fontes</option>';
+            sel2.innerHTML = '<option value="">Selecione uma fonte...</option>';
+
+            for (const f of fontes) {
+                // Card de fonte
+                const card = document.createElement("div");
+                card.className = "source-card";
+                card.dataset.id = f.source_id;
+                card.innerHTML = `
+        <div class="sc-id">${f.source_id}</div>
+        <div class="sc-type">${tipoLabel(f.type)}</div>
+        <span class="sc-status ${f.status}">${f.status}</span>
+        <div class="sc-ctrl">${f.controllable ? "🎛️ Controlável" : "📡 Somente leitura"}</div>
+      `;
+                card.onclick = () => {
+                    document.querySelectorAll(".source-card").forEach(c => c.classList.remove("selected"));
+                    card.classList.add("selected");
+                    sel1.value = f.source_id;
+                    atualizarGraficos();
+                };
+                grid.appendChild(card);
+
+                sel1.appendChild(new Option(f.source_id, f.source_id));
+                // Apenas controláveis aparecem no select de comandos
+                if (f.controllable) sel2.appendChild(new Option(f.source_id, f.source_id));
+            }
+
+            sel1.value = selChartVal;
+            sel2.value = selCmdVal;
+
+            document.getElementById("fontes-ts").textContent =
+                "atualizado " + new Date().toLocaleTimeString("pt-BR");
+        }
+
+        function tipoLabel(type) {
+            return {
+                temperatura: "🌡️ Temperatura",
+                qualidade_ar: "💨 Qualidade do Ar",
+                camera: "📷 Câmera",
+                poste: "💡 Poste",
+                semaforo: "🚦 Semáforo",
+            }[type] || type;
+        }
+
+        // ─── Gráficos ─────────────────────────────────────────────────────────────
+        // Apenas sensores contínuos têm histórico de leituras (temperatura e qualidade_ar)
+        async function atualizarGraficos() {
+            const source = document.getElementById("chart-source").value;
+            const sid = source ? `&source_id=${source}` : "";
+
+            const [temp, co2] = await Promise.all([
+                get(`/historico?type=temperatura${sid}&segundos=3600&limite=60`),
+                get(`/historico?type=qualidade_ar${sid}&segundos=3600&limite=60`),
+            ]);
+
+            if (temp) atualizarGrafico(charts.temp, temp);
+            if (co2) atualizarGrafico(charts.co2, co2);
+        }
+
+        // ─── Alertas recentes ─────────────────────────────────────────────────────
+        // Usa endpoint dedicado /alertas em vez de filtrar no frontend
+        async function atualizarAlertas() {
+            const alertas = await get("/alertas?segundos=3600&limite=20");
+            const list = document.getElementById("alert-list");
+
+            if (!alertas || alertas.length === 0) {
+                list.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Nenhum alerta na última hora.</div>';
+                return;
+            }
+
+            list.innerHTML = [...alertas].reverse().map(a => `
+      <div class="alert-item">
+        <div>
+          <span class="ai-source">${a.source_id}</span>
+          <span style="color:var(--muted);margin-left:8px">${a.type}</span>
+          — valor: <strong>${Number(a.valor).toFixed(2)}</strong>
+        </div>
+        <div class="ai-ts">${new Date(a.timestamp * 1000).toLocaleTimeString("pt-BR")}</div>
+      </div>
+    `).join("");
+        }
+
+        // ─── Consultas analíticas ─────────────────────────────────────────────────
+        // Endpoints alinhados com api.py: parâmetros dinâmicos (type, segundos)
+        async function atualizarAnaliticos() {
+            const [media, desvio, variacao, alertas] = await Promise.all([
+                get("/consultas/media?type=temperatura&segundos=3600"),
+                get("/consultas/desvio?type=qualidade_ar&segundos=86400"),
+                get("/consultas/maior_variacao?segundos=3600"),
+                get("/consultas/alertas?segundos=86400"),
+            ]);
+
+            if (media?.media != null) {
+                const v = Number(media.media).toFixed(1);
+                document.getElementById("an-temp").textContent = v;
+                document.getElementById("m-temp").textContent = v;
+            }
+
+            if (desvio?.desvio_padrao != null) {
+                const v = Number(desvio.desvio_padrao).toFixed(1);
+                document.getElementById("an-co2").textContent = v;
+                document.getElementById("m-co2").textContent = v;
+            }
+
+            if (variacao?.source_id) {
+                document.getElementById("an-var-id").textContent = variacao.source_id;
+                document.getElementById("an-var-dp").textContent =
+                    `desvio padrão: ${Number(variacao.desvio_padrao ?? 0).toFixed(2)}`;
+            }
+
+            if (alertas?.length > 0) {
+                // Total geral de alertas (soma de todas as fontes) → métrica do header
+                const total = alertas.reduce((s, x) => s + x.total, 0);
+                document.getElementById("m-alertas").textContent = total;
+
+                // Fonte com mais alertas → card analítico
+                document.getElementById("an-alert-id").textContent = alertas[0].source_id;
+                document.getElementById("an-alert-n").textContent = `total: ${alertas[0].total}`;
+            } else {
+                document.getElementById("m-alertas").textContent = "0";
+            }
+        }
+
+        // ─── Envio de comandos ────────────────────────────────────────────────────
+        async function enviarComando() {
+            const source_id = document.getElementById("cmd-source").value;
+            const acao = document.getElementById("cmd-acao").value;
+            const valor = parseFloat(document.getElementById("cmd-valor").value) || 0;
+            const resultado = document.getElementById("cmd-result");
+
+            if (!source_id) {
+                mostrarResultado(resultado, false, "Selecione uma fonte.");
+                return;
+            }
+
+            const resp = await post("/comando", { source_id, acao, valor });
+
+            if (resp?.sucesso) {
+                mostrarResultado(resultado, true, `✅ ${resp.mensagem}`);
+                await atualizarFontes();
+            } else {
+                mostrarResultado(resultado, false, `❌ ${resp?.mensagem ?? "Erro de comunicação com o Gateway."}`);
+            }
+        }
+
+        function mostrarResultado(el, ok, msg) {
+            el.textContent = msg;
+            el.className = ok ? "ok" : "err";
+            el.style.display = "block";
+            setTimeout(() => { el.style.display = "none"; }, 4000);
+        }
+
+        // ─── Loop de atualização ──────────────────────────────────────────────────
+        async function tick() {
+            await checarGateway();
+            await atualizarFontes();
+            await atualizarGraficos();
+            await atualizarAlertas();
+            await atualizarAnaliticos();
+        }
+
+        tick();
+        setInterval(tick, 5000);
+
+        document.getElementById("chart-source").addEventListener("change", atualizarGraficos);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+# ───────────────────────── Python (Gateway) ─────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+.venv-win/
+.venv-wsl/
+venv/
+env/
+
+# Banco de dados gerado em runtime
+*.db
+*.sqlite
+*.sqlite3
+
+# ───────────────────────── C (Fontes de dados) ──────────────────────
+*.o
+*.a
+*.so
+*.obj
+# binários ELF sem extensão gerados pelo `make`
+SmartCity/fontes/sensor_temperatura
+SmartCity/fontes/sensor_qualidade_ar
+SmartCity/fontes/camera
+SmartCity/fontes/poste
+SmartCity/fontes/semaforo
+
+# ───────────────────────── Java / Maven (Cliente) ───────────────────
+target/
+*.class
+dependency-reduced-pom.xml
+
+# ───────────────────────── Artefatos / temporários ──────────────────
+SmartCity_T1.zip
+_preview/
+_demo_source.py
+_render_shots.py
+*.log
+
+# ───────────────────────── Editores / Sistema ───────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

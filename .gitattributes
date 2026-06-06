@@ -1,0 +1,11 @@
+# Normaliza finais de linha — evita problemas de CRLF ao compilar em Linux/WSL
+* text=auto eol=lf
+
+# Scripts do Windows mantêm CRLF
+*.bat text eol=crlf
+
+# Arquivos binários (não normalizar)
+*.png  binary
+*.pdf  binary
+*.jar  binary
+*.db   binary

@@ -1,0 +1,67 @@
+syntax = "proto3";
+package cidade;
+
+// ─── DESCOBERTA (Multicast UDP) ───────────────────────────────────────────────
+
+// Gateway envia isso no multicast pedindo que fontes se identifiquem
+message DiscoveryRequest {
+  string gateway_ip   = 1;
+  int32  gateway_port = 2;  // porta TCP do gateway
+}
+
+// Cada fonte responde com isso
+message DiscoveryResponse {
+  string source_id    = 1;  // ex: "sensor_temp_01"
+  string type         = 2;  // ex: "temperatura", "qualidade_ar", "trafego"
+  string ip           = 3;
+  int32  udp_port     = 4;  // porta onde a fonte envia dados UDP
+  bool   controllable = 5;  // é controlável?
+  string status       = 6;  // "ativo", "inativo"
+}
+
+// ─── DADOS (UDP: Fonte → Gateway) ────────────────────────────────────────────
+
+message Leitura {
+  string source_id  = 1;
+  string type       = 2;
+  int64  timestamp  = 3;
+
+  oneof valor {              // só um desses campos virá preenchido
+    float temperatura  = 4;
+    float umidade      = 5;
+    float co2          = 6;
+    float ruido        = 7;
+    int32 contagem     = 8;  // tráfego, pessoas
+    float energia      = 9;
+  }
+
+  bool   alerta    = 10;  // true se ultrapassou limiar
+}
+
+// ─── CONTROLE (TCP: Gateway ↔ Fonte) ─────────────────────────────────────────
+
+message Comando {
+  string source_id = 1;
+  string acao      = 2;  // "ativar", "desativar", "set_frequencia", "set_limiar"
+  float  valor     = 3;  // usado quando acao = "set_frequencia" ou "set_limiar"
+}
+
+message RespostaComando {
+  bool   sucesso   = 1;
+  string mensagem  = 2;
+}
+
+// ─── CLIENTE ↔ GATEWAY (TCP) ─────────────────────────────────────────────────
+
+message RequisicaoCliente {
+  string  tipo      = 1;  // "listar", "comando", "consulta"
+  Comando comando   = 2;  // preenchido se tipo = "comando"
+  string  consulta  = 3;  // ex: "media_temp_1h", "desvio_co2_24h"
+}
+
+message RespostaGateway {
+  string tipo                       = 1;  // "fontes", "comando_ok", "consulta"
+  repeated DiscoveryResponse fontes = 2;
+  RespostaComando resultado_cmd     = 3;
+  string dados_consulta             = 4;  // JSON ou texto com resultado
+}
