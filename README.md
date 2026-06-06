@@ -70,6 +70,12 @@ Mesmos dados disponíveis em JSON para o dashboard web e qualquer cliente HTTP.
 
 ![API REST](docs/screenshots/03_api.png)
 
+### 4. Controle de atuadores — comando com round-trip
+Um `POST /comando` (ou o menu do Cliente Java) percorre **Cliente → Gateway → Fonte** por TCP e
+retorna a confirmação enviada pela própria fonte controlável.
+
+![Comando round-trip](docs/screenshots/04_comando.png)
+
 ---
 
 ## 🛠️ Tecnologias, frameworks e bibliotecas
@@ -174,13 +180,3 @@ SmartCity/
 ├── fontes/       *.c, Makefile, cidade.pb-c.*   → 5 fontes em C
 └── cliente/      src/, pom.xml, dashboard.html  → cliente Java + dashboard
 ```
-
----
-
-## 👥 Autores
-
-| Nome | Matrícula |
-|---|---|
-| Carlos Henrriky Vieira Sousa | 514128 |
-| José Enilson Mesquita da Silva | 497562 |
-| Maria Eduarda de Sousa Pereira | 510976 |
