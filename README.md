@@ -14,6 +14,19 @@ linguagens diferentes**, que se comunicam por **TCP**, **UDP unicast** e **UDP m
 
 ---
 
+## 🎬 Demonstração em Vídeo
+
+O vídeo abaixo mostra o sistema completo em execução: Gateway subindo, fontes se registrando,
+Cliente Analítico fazendo consultas e o desligamento de um sensor simulando uma falha real.
+
+[![Assista no YouTube](https://img.shields.io/badge/▶_Assista-YouTube-FF0000?logo=youtube&logoColor=white)](https://youtu.be/LINK_DO_VIDEO)
+
+> **Cenas demonstradas:** inicialização do Gateway → registro das 5 fontes → consultas TCP pelo
+> Cliente Java → envio de comando a atuador → falha simulada (kill de sensor TCP) → detecção
+> imediata pelo Gateway.
+
+---
+
 ## 🧩 Arquitetura
 
 ```mermaid
@@ -142,6 +155,13 @@ make                                   # compila os 5 binários
 ```
 > Os argumentos `<ip> <porta>` permitem ligar a fonte diretamente ao Gateway, contornando o
 > *discovery* multicast (útil quando as fontes rodam em WSL2 e o Gateway no Windows).
+
+**Script de demo (todas as fontes de uma vez — WSL):**
+```bash
+# Sobe as 5 fontes em background + instruções para simular falha
+chmod +x SmartCity/fontes/demo_fontes.sh
+SmartCity/fontes/demo_fontes.sh [<ip_gateway>]
+```
 
 ### 3) Cliente Analítico (Java)
 ```bash
