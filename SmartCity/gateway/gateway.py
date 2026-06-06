@@ -13,6 +13,16 @@ import struct
 import threading
 import time
 import json
+import queue
+import sys
+
+# Garante UTF-8 na saída (evita UnicodeEncodeError com emojis/acentos em
+# consoles cp1252 do Windows, que antes descartava leituras de alerta).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 import cidade_pb2
 import db
@@ -168,23 +178,25 @@ def _handle_fonte(conn, addr):
         conn.close()
         return
 
+    resp_q   = queue.Queue()
+    cmd_lock = threading.Lock()
     with lock:
-        fontes[resp.source_id] = {"info": resp, "conn": conn}
+        fontes[resp.source_id] = {
+            "info": resp, "conn": conn,
+            "resp_q": resp_q, "cmd_lock": cmd_lock,
+        }
 
     db.registrar_fonte(resp)
     print(f"[TCP-Fontes] Fonte controlável registrada: {resp.source_id} ({resp.type}) de {addr[0]}")
 
-    # Monitora desconexão mantendo a thread viva
+    # Thread leitora ÚNICA deste socket: recebe os RespostaComando e os entrega
+    # via fila. Assim o envio de comandos não disputa leitura no mesmo socket
+    # (a leitura em recv_msg também detecta a desconexão, retornando None).
     while True:
-        try:
-            conn.settimeout(30.0)
-            probe = conn.recv(1)
-            if not probe:
-                break
-        except socket.timeout:
-            continue  # ainda conectado, apenas sem dados
-        except Exception:
+        dados = recv_msg(conn)
+        if dados is None:
             break
+        resp_q.put(dados)
 
     with lock:
         if resp.source_id in fontes:
@@ -249,25 +261,47 @@ def _resp_listar():
 
 def _enviar_comando(cmd, conn_fonte):
     """
-    Serializa e envia um Comando via TCP para uma fonte controlável.
-    Aguarda e retorna o RespostaComando deserializado.
-    Em caso de erro retorna RespostaComando com sucesso=False.
+    Envia um Comando via TCP para uma fonte controlável e aguarda o
+    RespostaComando. A resposta é entregue pela thread leitora do socket
+    (_handle_fonte) através de uma fila — evitando dois leitores no mesmo
+    socket. Em caso de erro/timeout retorna RespostaComando com sucesso=False.
     """
     rc = cidade_pb2.RespostaComando()
-    try:
-        send_msg(conn_fonte, cmd.SerializeToString())
-        resposta_bytes = recv_msg(conn_fonte)
-        if not resposta_bytes:
-            raise RuntimeError("Sem resposta da fonte")
-        rc.ParseFromString(resposta_bytes)
 
-        # Atualiza status no banco para ações de ciclo de vida
-        if cmd.acao in ("ativar", "desativar"):
-            db.atualizar_status_fonte(cmd.source_id, cmd.acao + "do")
+    with lock:
+        fonte = fontes.get(cmd.source_id)
 
-    except Exception as e:
+    if not fonte or not fonte.get("conn") or "resp_q" not in fonte:
         rc.sucesso  = False
-        rc.mensagem = f"Erro ao enviar comando: {e}"
+        rc.mensagem = f"Fonte '{cmd.source_id}' não é controlável ou está desconectada"
+        return rc
+
+    cmd_lock = fonte["cmd_lock"]
+    resp_q   = fonte["resp_q"]
+
+    with cmd_lock:  # um comando em voo por fonte
+        # descarta eventuais respostas pendentes antigas
+        try:
+            while True:
+                resp_q.get_nowait()
+        except queue.Empty:
+            pass
+
+        try:
+            send_msg(conn_fonte, cmd.SerializeToString())
+            resposta_bytes = resp_q.get(timeout=5.0)
+            rc.ParseFromString(resposta_bytes)
+
+            # Atualiza status no banco para ações de ciclo de vida
+            if cmd.acao in ("ativar", "desativar"):
+                db.atualizar_status_fonte(cmd.source_id, cmd.acao + "do")
+
+        except queue.Empty:
+            rc.sucesso  = False
+            rc.mensagem = "Sem resposta da fonte (timeout)"
+        except Exception as e:
+            rc.sucesso  = False
+            rc.mensagem = f"Erro ao enviar comando: {e}"
 
     return rc
 
