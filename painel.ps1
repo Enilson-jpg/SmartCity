@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #  SmartCity · Painel de Controle
 #  Motor em PowerShell (cores nativas, REST nativo, tabelas limpas).
-#  Lancado pelo demo_gravacao.bat
+#  Lancado pelo menu.bat
 # ─────────────────────────────────────────────────────────────────────────────
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -9,17 +9,31 @@ $ErrorActionPreference = 'SilentlyContinue'
 $Host.UI.RawUI.WindowTitle = 'SmartCity · Painel de Controle'
 
 # ── Caminhos ─────────────────────────────────────────────────────────────────
-$Proj    = 'C:\Users\Usuario\Desktop\projeto\SmartCity'
+# Tudo derivado da pasta onde este script esta (raiz do repositorio), para que
+# o painel funcione em qualquer clone, independente de usuario ou local.
+
+# Converte um caminho Windows (C:\...) para o formato WSL (/mnt/c/...).
+function To-WslPath {
+    param([string]$WinPath)
+    $p = $WinPath -replace '\\', '/'
+    if ($p -match '^([A-Za-z]):/(.*)$') { return "/mnt/$($Matches[1].ToLower())/$($Matches[2])" }
+    return $p
+}
+
+$Root    = $PSScriptRoot
+$Proj    = Join-Path $Root 'SmartCity'
 $Dash    = Join-Path $Proj 'cliente\dashboard.html'
-$DemoWsl = '/mnt/c/Users/Usuario/Desktop/projeto/SmartCity/fontes'
+
+$ProjWsl = To-WslPath $Proj
+$DemoWsl = "$ProjWsl/fontes"
 
 # 127.0.0.1 (nao 'localhost'): em WSL2 mirrored, 'localhost' resolve IPv6 (::1)
 # e o gateway escuta so em IPv4 -> usar o IP literal garante alcance do Windows.
 $Api     = 'http://127.0.0.1:6003'
 
 # Gateway roda DENTRO do WSL (mesmo Linux das fontes -> discovery multicast nativo).
-$GwDirWsl = '/mnt/c/Users/Usuario/Desktop/projeto/SmartCity/gateway'
-$GwPyWsl  = '/mnt/c/Users/Usuario/Desktop/projeto/SmartCity/.venv-wsl/bin/python'
+$GwDirWsl = "$ProjWsl/gateway"
+$GwPyWsl  = "$ProjWsl/.venv-wsl/bin/python"
 
 # Mapa source_id -> nome do binario no WSL (para matar processo nas falhas)
 $BinMap = @{
