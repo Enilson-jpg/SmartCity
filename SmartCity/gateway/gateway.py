@@ -292,9 +292,16 @@ def _enviar_comando(cmd, conn_fonte):
             resposta_bytes = resp_q.get(timeout=5.0)
             rc.ParseFromString(resposta_bytes)
 
-            # Atualiza status no banco para ações de ciclo de vida
-            if cmd.acao in ("ativar", "desativar"):
-                db.atualizar_status_fonte(cmd.source_id, cmd.acao + "do")
+            # Atualiza status (banco + MEMÓRIA) para ações de ciclo de vida.
+            # Sem atualizar a memória, a listagem /fontes leria sempre o status
+            # de registro ("ativo") e nunca refletiria o desativar/ativar.
+            if rc.sucesso and cmd.acao in ("ativar", "desativar"):
+                novo_status = "ativo" if cmd.acao == "ativar" else "inativo"
+                db.atualizar_status_fonte(cmd.source_id, novo_status)
+                with lock:
+                    f = fontes.get(cmd.source_id)
+                    if f:
+                        f["info"].status = novo_status
 
         except queue.Empty:
             rc.sucesso  = False

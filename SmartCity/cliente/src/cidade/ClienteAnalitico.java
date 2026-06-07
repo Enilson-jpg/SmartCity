@@ -112,6 +112,8 @@ public class ClienteAnalitico {
                 ║ 5. Alterar limiar de alerta  ║
                 ║ 6. Consulta: média temp 1h   ║
                 ║ 7. Consulta: desvio CO2 24h  ║
+                ║ 8. Consulta: maior variação  ║
+                ║ 9. Consulta: total alertas   ║
                 ║ 0. Sair                      ║
                 ╚══════════════════════════════╝
                 Opção: """);
@@ -144,6 +146,8 @@ public class ClienteAnalitico {
                 }
                 case "6" -> executarConsulta("media_temp_1h");
                 case "7" -> executarConsulta("desvio_co2_24h");
+                case "8" -> executarConsulta("maior_variacao");
+                case "9" -> executarConsulta("alertas_24h");
                 case "0" -> { socket.close(); return; }
                 default  -> System.out.println("Opção inválida.");
             }

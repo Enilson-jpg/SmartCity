@@ -33,10 +33,17 @@ dependency-reduced-pom.xml
 
 # ───────────────────────── Artefatos / temporários ──────────────────
 SmartCity_T1.zip
+*.zip
 _preview/
 _demo_source.py
 _render_shots.py
+# scripts de geração de slides/zip (artefatos de entrega, não fazem parte do código)
+criar_zip.py
+gerar_slides.py
 *.log
+
+# ───────────────────────── Documentos de entrega (PDF) ──────────────
+*.pdf
 
 # ───────────────────────── Editores / Sistema ───────────────────────
 .vscode/

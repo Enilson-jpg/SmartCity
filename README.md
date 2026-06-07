@@ -1,4 +1,6 @@
-# 🌆 SmartCity — Sistema Distribuído com Sockets e Protocol Buffers
+# 🌆 SmartCity
+
+> Sistema distribuído de cidade inteligente: gateway em Python conectando sensores em C a um cliente Java via sockets.
 
 ![Python](https://img.shields.io/badge/Gateway-Python%203-3776AB?logo=python&logoColor=white)
 ![C](https://img.shields.io/badge/Fontes-C%20(protobuf--c)-A8B9CC?logo=c&logoColor=black)
@@ -16,14 +18,7 @@ linguagens diferentes**, que se comunicam por **TCP**, **UDP unicast** e **UDP m
 
 ## 🎬 Demonstração em Vídeo
 
-O vídeo abaixo mostra o sistema completo em execução: Gateway subindo, fontes se registrando,
-Cliente Analítico fazendo consultas e o desligamento de um sensor simulando uma falha real.
-
 [![Assista no YouTube](https://img.shields.io/badge/▶_Assista-YouTube-FF0000?logo=youtube&logoColor=white)](https://youtu.be/LINK_DO_VIDEO)
-
-> **Cenas demonstradas:** inicialização do Gateway → registro das 5 fontes → consultas TCP pelo
-> Cliente Java → envio de comando a atuador → falha simulada (kill de sensor TCP) → detecção
-> imediata pelo Gateway.
 
 ---
 
